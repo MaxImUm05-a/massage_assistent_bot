@@ -25,6 +25,10 @@ masters_factory = CallbackData('master_id', prefix='masters')
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    db.delete_outdated_bookings()
+    db.delete_outdated_break_hours()
+    db.delete_outdated_days_off()
+
     if db.get_existance_master(message.from_user.id) == True:
         bot.set_state(message.from_user.id, UserStates.main_master, message.chat.id)
 

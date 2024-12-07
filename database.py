@@ -71,6 +71,19 @@ def get_all_bookings_with_master(master_id):
 
     return ides
 
+def get_all_bookings():
+    """Отримати всі записи, які тільки є в БД"""
+
+    with db:
+        ides = []
+
+        bookings = Booking.select()
+
+        for booking in bookings:
+            ides.append(booking.booking_id)
+
+    return ides
+
 def get_booking(booking_id):
     """Отримати інформацію про запис"""
 
@@ -78,8 +91,6 @@ def get_booking(booking_id):
         info = []
 
         bookings = Booking.select().where(Booking.booking_id == booking_id)
-        print(bookings)
-        print('here')
 
         for booking in bookings:
             info.append(booking.date)
@@ -248,6 +259,19 @@ def get_days_off(master_id):
 
     return days
 
+def get_all_days_off():
+    """Отримати всі вихідні дні які є в БД"""
+
+    with db:
+        days_off = Day_off.select()
+
+        days = []
+
+        for day in days_off:
+            days.append(day.day_off)
+
+    return days
+
 def get_duration(service_id):
     """Отримати час, за який певний майстер робить певну послугу"""
 
@@ -271,6 +295,22 @@ def get_break_hours_master(master_id):
             dictionary[hour.day].append(hour.hour)
 
     return dictionary
+
+def get_all_break_hours():
+    """Отримати всі перерви які є в БД"""
+
+    with db:
+        dictionary = {}
+
+        hours = Break_hours.select()
+
+        for hour in hours:
+            if hour.day not in dictionary:
+                dictionary[hour.day] = []
+            dictionary[hour.day].append([hour.hour])
+
+    return dictionary
+
 
 #SETTERS
 
@@ -377,6 +417,32 @@ def delete_master_from_db(master_id):
         master = Master.get(Master.master_id == master_id)
         master.delete_instance(recursive=True)
 
+
+def delete_outdated_bookings():
+    """Видалення застарілих замовлень"""
+
+    with db:
+        bookings = Booking.get(dt.datetime.strptime(Booking.date, '%Y-%m-%d').date() < dt.date.today())
+        for booking in bookings:
+            booking.delete_instance()
+
+
+def delete_outdated_break_hours():
+    """Видалення застарілих перерв"""
+
+    with db:
+        break_hours = Break_hours.get(dt.datetime.strptime(Break_hours.day, '%Y-%m-%d').date() < dt.date.today())
+        for break_hour in break_hours:
+            break_hours.delete_instance()
+
+
+def delete_outdated_days_off():
+    """Видалення застарілих вихідних днів"""
+
+    with db:
+        days_off = Day_off.get(dt.datetime.strptime(Day_off.day_off, '%Y-%m-%d').date() < dt.date.today())
+        for day_off in days_off:
+            day_off.delete_instance()
 
 # def set_service():
 #

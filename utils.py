@@ -1,6 +1,12 @@
 from telebot.handler_backends import State, StatesGroup
 from models import *
 import datetime as dt
+import redis
+
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+
+print(redis_client.set(name='test', value=1))
+print(redis_client.get(name='test'))
 
 class UserStates(StatesGroup):
     '''Class for defining states'''
@@ -82,3 +88,4 @@ def sort_days(day_to):
 
     return sorted_days
 
+redis_client.close()
