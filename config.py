@@ -1,0 +1,3 @@
+TOKEN = '5758066916:AAHC3IZWJkvq7V9BUBolfCzO94PoYH5pKdM'
+main_phone_number = 380683091415
+password = '12345678'
