@@ -3,41 +3,50 @@ from models import *
 import datetime as dt
 import redis
 
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
 print(redis_client.set(name='test', value=1))
 print(redis_client.get(name='test'))
 
-class UserStates(StatesGroup):
-    '''Class for defining states'''
+STATES = ("main_menu", "my_bookings", "choose_day", "choose_hour", "booking", "main_master", "name", "experience",
+    "info", "reg_services", "add_new_service", "set_work_to", "days", "month", "hour_breaks", "sent_message",
+    "set_days_off", "share_contact", "get_client_date", "get_client_time")
 
-    #General states
-    main_menu = State()
-    # services = State()
-    # masters = State()
-    my_bookings = State()
-    choose_day = State()
-    choose_hour = State()
-    booking = State()
-    main_master = State()
 
-    #States for registration a master
-    name = State()
-    experience = State()
-    info = State()
-    reg_services = State()
-    add_new_service = State()
-    set_work_to = State()
-    days = State()
-    month = State()
-    hour_breaks = State()
-    sent_message = State()
-    set_days_off = State()
-    share_contact = State()
+#FSM(Finite State Machine) using Redis
+def set_user_state(user_id, state):
+    """Встановлення стану користувача"""
 
-    #States for getting info about client
-    get_client_date = State()
-    get_client_time = State()
+    if state in STATES:
+        redis_client.set(f'user:{user_id}:state', state)
+
+def get_user_state(user_id):
+    """Подивитись стан користувача"""
+
+    return redis_client.get(f'user:{user_id}:state')
+
+def set_user_data(user_id, key, value):
+    """Встановити якусь тимчасову інформацію користувача"""
+
+    if key in STATES:
+        redis_client.hset(f'user:{user_id}:data', key, value)
+
+def get_user_data(user_id, key):
+    """Отримати збережену інформацію користувача"""
+
+    return redis_client.hget(f'user:{user_id}:data', key)
+
+def clear_user_data(user_id):
+    """Почистити збережену інформацію користувача з redis"""
+
+    redis_client.delete(f'user:{user_id}:data')
+
+
+def clear_user_state(user_id):
+    """Почистити стан користувача з redis"""
+
+    redis_client.delete(f'user:{user_id}:state')
+
 
 
 def perevir_unique_clients(phone_number):
