@@ -4,7 +4,7 @@ from matplotlib.patches import Rectangle
 from io import BytesIO
 import numpy
 import datetime as dt
-import database as db
+import database as dbpy
 
 matplotlib.use('Agg')
 
@@ -119,10 +119,10 @@ def generate_date_list(end_date_str):
 def get_schedule_of_master(master_id):
     """Отримати дні, в які можна записатись до майстра"""
 
-    work_to = db.get_master_work_to(master_id)
+    work_to = dbpy.get_master_work_to(master_id)
     days = generate_date_list(work_to)
 
-    days_off = db.get_days_off(master_id)
+    days_off = dbpy.get_days_off(master_id)
 
     days = [day for day in days if day not in days_off]
 
@@ -132,15 +132,15 @@ def get_day_of_master(master_id, day, duration):
     """Отримати вільні години майстра в конкретний день"""
 
     all_hours = [x/2 for x in range(16, 41)]
-    work_hours = db.get_break_hours_master(master_id)
+    work_hours = dbpy.get_break_hours_master(master_id)
     work_hours_float = [int(hour[:2]) + int(hour[3:5])/60 for hour in list(work_hours.values())[0]]
 
     all_hours = [hour for hour in all_hours if hour in work_hours_float]
 
-    all_bookings = db.get_all_bookings_with_master(master_id)
+    all_bookings = dbpy.get_all_bookings_with_master(master_id)
     all_bookings_info = []
     for booking in all_bookings:
-        all_bookings_info.append(db.get_booking(booking))
+        all_bookings_info.append(dbpy.get_booking(booking))
 
     for booking in all_bookings_info:
         if booking[0] != day:

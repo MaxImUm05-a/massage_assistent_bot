@@ -101,4 +101,4 @@ def create_tables():
     with db:
         db.create_tables([Booking, Master, Client, Service, Service_has_master, Day_off, Break_hours])
 
-create_tables()
+# create_tables()

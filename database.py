@@ -2,8 +2,6 @@ from models import *
 from utils import *
 import datetime as dt
 
-
-
 #GETTERS
 
 
@@ -421,28 +419,30 @@ def delete_master_from_db(master_id):
 def delete_outdated_bookings():
     """Видалення застарілих замовлень"""
 
+    #dt.datetime.strptime(Booking.date, '%Y-%m-%d').date()
+
     with db:
-        bookings = Booking.get(dt.datetime.strptime(Booking.date, '%Y-%m-%d').date() < dt.date.today())
-        for booking in bookings:
-            booking.delete_instance()
+        Booking.delete().where(Booking.date < dt.date.today()).execute()
+        # print(bookings)
+        # for booking in bookings:
+        #     query = booking.delete_instance()
+        #     query.execute()
 
 
 def delete_outdated_break_hours():
     """Видалення застарілих перерв"""
 
     with db:
-        break_hours = Break_hours.get(dt.datetime.strptime(Break_hours.day, '%Y-%m-%d').date() < dt.date.today())
-        for break_hour in break_hours:
-            break_hours.delete_instance()
+        Break_hours.delete().where(Break_hours.day < dt.date.today()).execute()
 
 
 def delete_outdated_days_off():
     """Видалення застарілих вихідних днів"""
 
     with db:
-        days_off = Day_off.get(dt.datetime.strptime(Day_off.day_off, '%Y-%m-%d').date() < dt.date.today())
-        for day_off in days_off:
-            day_off.delete_instance()
+        Day_off.delete().where(Day_off.day_off < dt.date.today()).execute()
+        # except:
+        #     print('Everything is up-to-date')
 
 # def set_service():
 #

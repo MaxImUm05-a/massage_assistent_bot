@@ -2,10 +2,9 @@ import telebot
 import datetime
 import schedule as plot
 import config
-import database as db
+import database as dbpy
 from utils import *
 from telebot import types
-
 from telebot.callback_data import CallbackData
 
 
@@ -19,11 +18,11 @@ bot = telebot.TeleBot(config.TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    db.delete_outdated_bookings()
-    db.delete_outdated_break_hours()
-    db.delete_outdated_days_off()
+    dbpy.delete_outdated_bookings()
+    dbpy.delete_outdated_break_hours()
+    dbpy.delete_outdated_days_off()
 
-    if db.get_existance_master(message.from_user.id) == True:
+    if dbpy.get_existance_master(message.from_user.id):
         set_user_state(message.from_user.id, 'main_master')
         # bot.set_state(message.from_user.id, UserStates.main_master, message.chat.id)
 
@@ -45,8 +44,8 @@ def start(message):
         my_book = types.KeyboardButton(text='Мої записи')
         keyboard.add(working_hours_button, available_serv, my_book)
         bot.send_message(message.chat.id,
-                         f'Вітаю, {message.from_user.first_name}! Я бот салону краси від Ані. Виберіть те, що вас цікавить.')
-        bot.send_message(message.chat.id, 'Я з радістю допоможу вам записатись до нас <3', reply_markup=keyboard)
+                         f'Вітаю, {message.from_user.first_name}! Я бот масажної студії. Виберіть те, що вас цікавить.')
+        bot.send_message(message.chat.id, 'Я з радістю допоможу вам записатись до нас', reply_markup=keyboard)
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.from_user.id)=='main_menu')
@@ -78,7 +77,7 @@ def main_menu(message):
         keyboard = types.InlineKeyboardMarkup(row_width=2)
 
         services = []
-        serv_price = db.get_all_services()
+        serv_price = dbpy.get_all_services()
         msg = 'Ось послуги, які ми пропонуємо:\n'
         for sp in serv_price:
             services.append(types.InlineKeyboardButton(
@@ -131,11 +130,11 @@ def delete_master(message):
     """Видалення майстра з БД, який звільнився"""
 
     try:
-        master_id = db.get_master_id_with_user_id(message.from_user.id)
-        master = db.get_master(master_id)
+        master_id = dbpy.get_master_id_with_user_id(message.from_user.id)
+        master = dbpy.get_master(master_id)
 
         if master[5] == config.main_phone_number:
-            masters = db.get_all_masters()
+            masters = dbpy.get_all_masters()
 
             keyboard = types.InlineKeyboardMarkup()
             buttons = [types.InlineKeyboardButton(text=master[1], callback_data=f'delete_{master[0]}')
@@ -154,8 +153,8 @@ def delete_master(message):
 
 @bot.message_handler(content_types=['contact'])
 def contact_handler(message):
-    db.set_client(message.contact.phone_number, message.contact.first_name)
-    client_id = db.get_client_id(message.contact.phone_number)
+    dbpy.set_client(message.contact.phone_number, message.contact.first_name)
+    client_id = dbpy.get_client_id(message.contact.phone_number)
 
     if get_user_state(message.from_user.id) == 'share_contact.name':
         """Завершення реєстрації: збереження всієї інформації в БД"""
@@ -164,17 +163,17 @@ def contact_handler(message):
 
         try:
             with bot.retrieve_data(message.chat.id) as data:
-                db.set_master(name=data['name'], user_id=message.from_user.id,
-                              info=data['info'], experience=data['experience'],
-                              phone_number=message.contact.phone_number)
+                dbpy.set_master(name=data['name'], user_id=message.from_user.id,
+                                info=data['info'], experience=data['experience'],
+                                phone_number=message.contact.phone_number)
                 services = data.get('reg_services')
 
-            master_id = db.get_master_id_with_user_id(message.from_user.id)
+            master_id = dbpy.get_master_id_with_user_id(message.from_user.id)
 
             for service in services:
-                service_id = db.get_service_id_with_title(service)
+                service_id = dbpy.get_service_id_with_title(service)
                 print(service_id)
-                db.set_service_master_relation(master_id, service_id)
+                dbpy.set_service_master_relation(master_id, service_id)
 
             # state.set(UserStates.set_work_to)
             # bot.set_state(message.from_user.id, UserStates.set_work_to)
@@ -201,7 +200,7 @@ def contact_handler(message):
             keyboard.add(working_hours_button, available_serv, my_book)
 
             if data['booking']:
-                db.set_booking(data['date_time'], data['service_id'], data['master_id'], client_id)
+                dbpy.set_booking(data['date_time'], data['service_id'], data['master_id'], client_id)
 
                 # booking_id = db.get_booking(client_id, 1)
                 # schedule_id = db.get_schedule(data['date_time'], data['master_id'])
@@ -213,18 +212,18 @@ def contact_handler(message):
                 set_user_state(message.from_user.id, 'main_menu')
             elif not data['booking']:
                 try:
-                    client_id = db.get_client_id(message.contact.phone_number)
-                    bookings = db.get_all_bookings_with_client(client_id)
+                    client_id = dbpy.get_client_id(message.contact.phone_number)
+                    bookings = dbpy.get_all_bookings_with_client(client_id)
 
                     info=[]
                     for booking in bookings:
-                        info.append(db.get_booking(booking))
+                        info.append(dbpy.get_booking(booking))
 
 
                     msgs = []
                     for i in info:
-                        master_info = db.get_master(i[5])
-                        service_info = db.get_service(i[4])
+                        master_info = dbpy.get_master(i[5])
+                        service_info = dbpy.get_service(i[4])
 
                         date = i[0]
                         time = i[1]
@@ -285,7 +284,7 @@ def becoming_master_name(message):
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.from_user.id)=='reg_services')
-def choosing_services(message, state):
+def choosing_services(message):
     """Бот зберігає досвід майстра і задає йому запитання щодо його досвіду
     Бот виводить повідомлення з варіантами послуг і можливістю створити нову послугу"""
 
@@ -293,7 +292,7 @@ def choosing_services(message, state):
     set_user_data(message.from_user.id, 'experience', message.text)
 
     keyboard = types.InlineKeyboardMarkup()
-    services = db.get_all_services()
+    services = dbpy.get_all_services()
     btn = []
 
     # with state.data() as data:
@@ -329,7 +328,7 @@ def choosing_services(message, state):
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.from_user.id)=='info')
-def becoming_master_end(message, state):
+def becoming_master_end(message):
     """Збереження опису і перенаправлення для поширення свого номеру телефона"""
 
     # state.set(UserStates.main_master)
@@ -361,7 +360,7 @@ def becoming_master_end(message, state):
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.from_user.id)=='main_master')
-def main_master_menu(message, state):
+def main_master_menu(message):
     if message.text == 'Змінити інформацію про себе':
         keyboard = types.InlineKeyboardMarkup()
         change_name = types.InlineKeyboardButton(text='Ім\'я', callback_data='change_name')
@@ -371,12 +370,12 @@ def main_master_menu(message, state):
 
         bot.send_message(message.chat.id, 'Що саме Ви хочете змінити?', reply_markup=keyboard)
     elif message.text == 'Послуги, які я надаю':
-        master_id = db.get_master_id_with_user_id(message.from_user.id)
-        service_ids = db.get_all_services_with_master(master_id)
+        master_id = dbpy.get_master_id_with_user_id(message.from_user.id)
+        service_ids = dbpy.get_all_services_with_master(master_id)
         msg = ''
 
         for service_id in service_ids:
-            service = db.get_service(service_id)
+            service = dbpy.get_service(service_id)
             msg = msg + service[1] + ' -- ' + str(service[2]) + '\n'
 
         msg = 'Ось послуги, які ви надаєте:\n' + msg
@@ -387,16 +386,16 @@ def main_master_menu(message, state):
 
         bot.send_message(message.chat.id, msg, reply_markup=keyboard)
     elif message.text == 'Мій розклад':
-        master_id = db.get_master_id_with_user_id(message.from_user.id)
-        booking_ids = db.get_all_bookings_with_master(master_id)
-        bookings = [db.get_booking(booking_id) for booking_id in booking_ids]
+        master_id = dbpy.get_master_id_with_user_id(message.from_user.id)
+        booking_ids = dbpy.get_all_bookings_with_master(master_id)
+        bookings = [dbpy.get_booking(booking_id) for booking_id in booking_ids]
         bookings_by_name = []
 
 
         for booking in bookings:
             bookings_by_name.append({})
-            service = db.get_service(booking[-3])
-            client = db.get_client(booking[-1])
+            service = dbpy.get_service(booking[-3])
+            client = dbpy.get_client(booking[-1])
 
             print(service, client)
 
@@ -455,7 +454,7 @@ def main_master_menu(message, state):
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.from_user.id)=='set_work_to')
-def set_schedule_start(message, state):
+def set_schedule_start(message):
     """Отримання даних про терміну роботи, запит про вихідні дні"""
 
     try:
@@ -465,7 +464,7 @@ def set_schedule_start(message, state):
 
         # state.set(UserStates.set_days_off)
         set_user_state(message.from_user.id, 'set_days_off')
-        db.set_master_work_to(message.from_user.id, date)
+        dbpy.set_master_work_to(message.from_user.id, date)
 
         keyboard = types.InlineKeyboardMarkup(row_width=7)
         days = sort_days(date)
@@ -523,7 +522,7 @@ def set_schedule_start(message, state):
                          reply_markup=keyboard)
 
         # state.add_data(sent_message = msg)
-        set_user_data(message.from_user.id, 'sent_message', msg)
+        set_user_data(message.from_user.id, 'sent_message', msg.message_id)
     except Exception as e:
         print(e)
 
@@ -536,18 +535,18 @@ def set_schedule_start(message, state):
 
 
 @bot.message_handler(func=lambda message: get_user_state(message.from_user.id)=='set_days_off')
-def set_schedule(message, state):
+def set_schedule(message):
     """Отримання даних про вихідні дні"""
 
     try:
         txt = message.text.split(',')
         list = [element.split('.') for element in txt]
 
-        master_id = db.get_master_id_with_user_id(message.from_user.id)
+        master_id = dbpy.get_master_id_with_user_id(message.from_user.id)
 
         for day_off in list:
             date = datetime.date(day=int(day_off[0]), month=int(day_off[1]), year=int(day_off[2]))
-            db.set_day_off(date, master_id)
+            dbpy.set_day_off(date, master_id)
 
         # state.set(UserStates.main_master)
         set_user_state(message.from_user.id, 'main_master')
@@ -569,7 +568,7 @@ def set_schedule(message, state):
 
 # CALLBACK_QUERY_HANDLERS
 @bot.callback_query_handler(func=lambda call: call.data.startswith('setting_hours_'))
-def set_break_hours(call: types.CallbackQuery, state):
+def set_break_hours(call: types.CallbackQuery):
     """Функція яка обробляє встановлення перерв"""
 
     command = call.data[14:]
@@ -588,11 +587,11 @@ def set_break_hours(call: types.CallbackQuery, state):
     #     hour_breaks = data.get('hour_breaks')
     #     msg_id = data.get('sent_message').message_id
 
-    days = get_user_data(call.message.from_user.id, 'days')
-    month = get_user_data(call.message.from_user.id, 'month')
-    days_off = get_user_data(call.message.from_user.id, 'days_off')
-    hour_breaks = get_user_data(call.message.from_user.id, 'hour_breaks')
-    msg_id = get_user_data(call.message.from_user.id, 'sent_message').message_id
+    days = get_user_data(call.from_user.id, 'days')
+    month = get_user_data(call.from_user.id, 'month')
+    days_off = get_user_data(call.from_user.id, 'days_off')
+    hour_breaks = get_user_data(call.from_user.id, 'hour_breaks')
+    msg_id = get_user_data(call.from_user.id, 'sent_message')
 
     match command:
         case 'next':
@@ -601,7 +600,7 @@ def set_break_hours(call: types.CallbackQuery, state):
                 pass
             new_month = next(months)
             # state.add_data(month=new_month)
-            set_user_data(call.message.from_user.id, 'month', new_month)
+            set_user_data(call.from_user.id, 'month', new_month)
             weeks = days[new_month]
 
             keyboard = types.InlineKeyboardMarkup(row_width=7)
@@ -658,7 +657,7 @@ def set_break_hours(call: types.CallbackQuery, state):
                                         chat_id=call.message.chat.id, message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case 'back':
             reversed_days = {key: value for key, value in reversed(days.items())}
             months = iter(reversed_days)
@@ -666,7 +665,7 @@ def set_break_hours(call: types.CallbackQuery, state):
                 pass
             new_month = next(months)
             # state.add_data(month=new_month)
-            set_user_data(call.message.from_user.id, 'month', new_month)
+            set_user_data(call.from_user.id, 'month', new_month)
             weeks = days[new_month]
 
             keyboard = types.InlineKeyboardMarkup(row_width=7)
@@ -723,10 +722,14 @@ def set_break_hours(call: types.CallbackQuery, state):
                                         message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case 'complete_all':
+            keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+            back = types.KeyboardButton(text='Повернутись на головний екран')
+            keyboard.add(back)
+
             bot.delete_message(call.message.chat.id, msg_id)
-            bot.send_message(call.message.chat.id, 'Ваш графік сформовано!')
+            bot.send_message(call.message.chat.id, 'Ваш графік сформовано!', reply_markup=keyboard)
         case 'complete_day':
             weeks = days[month]
 
@@ -798,10 +801,10 @@ def set_break_hours(call: types.CallbackQuery, state):
                                         message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case str() if command.startswith('day_'):
-            master_id = db.get_master_id_with_user_id(call.from_user.id)
-            hours = db.get_break_hours_master(master_id)
+            master_id = dbpy.get_master_id_with_user_id(call.from_user.id)
+            hours = dbpy.get_break_hours_master(master_id)
 
             if command[4:] in hours:
                 hours_of_day = [hour for hour in WORK_HOURS if hour.zfill(5)+':00' not in hours[command[4:]]]
@@ -825,13 +828,13 @@ def set_break_hours(call: types.CallbackQuery, state):
                                         chat_id=call.message.chat.id, message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case str() if command.startswith('hour_'):
-            master_id = db.get_master_id_with_user_id(call.from_user.id)
+            master_id = dbpy.get_master_id_with_user_id(call.from_user.id)
             day, hour = command[5:].split('_')
-            db.set_break_hour(hour, day, master_id)
+            dbpy.set_break_hour(hour, day, master_id)
 
-            hours = db.get_break_hours_master(master_id)
+            hours = dbpy.get_break_hours_master(master_id)
 
             if day in hours:
                 hours_of_day = [hour for hour in WORK_HOURS if hour.zfill(5)+':00' not in hours[day]]
@@ -856,10 +859,10 @@ def set_break_hours(call: types.CallbackQuery, state):
                                         chat_id=call.message.chat.id, message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('setting_days_off_'))
-def set_days_off(call: types.CallbackQuery, state):
+def set_days_off(call: types.CallbackQuery):
     """Функція яка керує механізмом книжечки для вибору вихідних днів"""
 
     command = call.data[17:]
@@ -870,10 +873,10 @@ def set_days_off(call: types.CallbackQuery, state):
     #     days_off = data.get('days_off')
     #     msg_id = data.get('sent_message').message_id
 
-    days = get_user_data(call.message.from_user.id, 'days')
-    month = get_user_data(call.message.from_user.id, 'month')
-    days_off = get_user_data(call.message.from_user.id, 'days_off')
-    msg_id = get_user_data(call.message.from_user.id, 'sent_message').message_id
+    days = get_user_data(call.from_user.id, 'days')
+    month = get_user_data(call.from_user.id, 'month')
+    days_off = get_user_data(call.from_user.id, 'days_off')
+    msg_id = get_user_data(call.from_user.id, 'sent_message')
 
     match command:
         case 'next':
@@ -882,7 +885,7 @@ def set_days_off(call: types.CallbackQuery, state):
                 pass
             new_month = next(months)
             # state.add_data(month = new_month)
-            set_user_data(call.message.from_user.id, 'month', new_month)
+            set_user_data(call.from_user.id, 'month', new_month)
             weeks = days[new_month]
 
             keyboard = types.InlineKeyboardMarkup(row_width=7)
@@ -939,7 +942,7 @@ def set_days_off(call: types.CallbackQuery, state):
                                         message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case 'back':
             reversed_days = {key: value for key, value in reversed(days.items())}
             months = iter(reversed_days)
@@ -947,7 +950,7 @@ def set_days_off(call: types.CallbackQuery, state):
                 pass
             new_month = next(months)
             # state.add_data(month=new_month)
-            set_user_data(call.message.from_user.id, 'month', new_month)
+            set_user_data(call.from_user.id, 'month', new_month)
             weeks = days[new_month]
 
             keyboard = types.InlineKeyboardMarkup(row_width=7)
@@ -1004,16 +1007,16 @@ def set_days_off(call: types.CallbackQuery, state):
                                        message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case 'complete':
             try:
                 list = [element.split('-') for element in days_off]
 
-                master_id = db.get_master_id_with_user_id(call.from_user.id)
+                master_id = dbpy.get_master_id_with_user_id(call.from_user.id)
 
                 for day_off in list:
                     date = datetime.date(day=int(day_off[2]), month=int(day_off[1]), year=int(day_off[0]))
-                    db.set_day_off(date, master_id)
+                    dbpy.set_day_off(date, master_id)
 
             except Exception as e:
                 print(e)
@@ -1085,17 +1088,21 @@ def set_days_off(call: types.CallbackQuery, state):
             keyboard.add(complete)
 
             # state.add_data(hour_breaks = [])
-            set_user_data(call.message.from_user.id, 'hour_breaks', [])
+            set_user_data(call.from_user.id, 'hour_breaks', [])
 
             msg = bot.edit_message_text(f'Виберіть день для якого хочете відредагувати робочі години\n\n'
                                         f'Місяць: {month}', chat_id=call.message.chat.id,
                                         message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
 
         case _:
-            days_off.append(command)
+            if days_off == None:
+                days_off = [command]
+            else:
+                days_off.append(command)
+            set_user_data(call.from_user.id, 'days_off', days_off)
             weeks = days[month]
 
             keyboard = types.InlineKeyboardMarkup(row_width=7)
@@ -1166,21 +1173,21 @@ def set_days_off(call: types.CallbackQuery, state):
                                         message_id=msg_id, reply_markup=keyboard)
 
             # state.add_data(sent_message=msg)
-            set_user_data(call.message.from_user.id, 'sent_message', msg)
+            set_user_data(call.from_user.id, 'sent_message', msg.message_id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('delete_'))
-def delete_master_from_db(call: types.CallbackQuery, state):
+def delete_master_from_db(call: types.CallbackQuery):
     """Видалення певного майстра з БД"""
 
     try:
-        db.delete_master_from_db(call.data[7:])
+        dbpy.delete_master_from_db(call.data[7:])
         bot.send_message(call.message.chat.id, 'Видалено!')
     except:
         bot.send_message(call.message.chat.id, 'Щось пішло не так')
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('master_booking_'))
-def master_booking(call: types.CallbackQuery, state):
+def master_booking(call: types.CallbackQuery):
     """Реалізація книжечки для отримання інформації про клієнта"""
 
 
@@ -1192,7 +1199,7 @@ def master_booking(call: types.CallbackQuery, state):
         #             bookings.append(booking)
 
         bookings = []
-        for booking in get_user_data(call.message.from_user.id, 'get_client_date'):
+        for booking in get_user_data(call.from_user.id, 'get_client_date'):
             if booking['date'] == call.data[20:]:
                 bookings.append(booking)
 
@@ -1212,9 +1219,9 @@ def master_booking(call: types.CallbackQuery, state):
             keyboard.add(button)
 
         # state.set(UserStates.get_client_time)
-        set_user_state(call.message.from_user.id, 'get_client_time')
+        set_user_state(call.from_user.id, 'get_client_time')
         # state.add_data(get_client_time=bookings)
-        set_user_data(call.message.from_user.id, 'get_client_time', bookings)
+        set_user_data(call.from_user.id, 'get_client_time', bookings)
 
         bot.send_message(call.message.chat.id, 'Щоб отримати інформацію про клієнта, будь ласка, виберіть його замовлення',
                          reply_markup=keyboard)
@@ -1227,12 +1234,12 @@ def master_booking(call: types.CallbackQuery, state):
         #             bookings.append(booking)
 
         bookings = []
-        for booking in get_user_data(call.message.from_user.id, 'get_client_time'):
+        for booking in get_user_data(call.from_user.id, 'get_client_time'):
             if booking['start_time'] == call.data[20:]:
                 bookings.append(booking)
 
         # state.set(UserStates.main_master)
-        set_user_state(call.message.from_user.id, 'main_master')
+        set_user_state(call.from_user.id, 'main_master')
 
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         back = types.KeyboardButton(text='Повернутись на головний екран')
@@ -1242,7 +1249,7 @@ def master_booking(call: types.CallbackQuery, state):
                          reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('change_'))
-def changing_master(call: types.CallbackQuery, state):
+def changing_master(call: types.CallbackQuery):
     """Зміна інформації про майстра"""
 
     if call.data[7:] == 'name':
@@ -1260,9 +1267,9 @@ def changing_master_name(message):
     """Зміна імені майстра"""
 
     # bot.set_state(message.from_user.id, UserStates.main_master, message.chat.id)
-    set_user_state(message.from_user.id, 'main_master')
+    # set_user_state(message.from_user.id, 'main_master')
 
-    db.set_master_name(message.text, message.from_user.id)
+    dbpy.set_master_name(message.text, message.from_user.id)
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     back = types.KeyboardButton(text='Повернутись на головний екран')
@@ -1274,9 +1281,9 @@ def changing_master_name(message):
 def changing_master_info(message):
     """Зміна опису майстра"""
 
-    set_user_state(message.from_user.id, 'main_master')
+    # set_user_state(message.from_user.id, 'main_master')
 
-    db.set_master_info(message.text, message.from_user.id)
+    dbpy.set_master_info(message.text, message.from_user.id)
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     back = types.KeyboardButton(text='Повернутись на головний екран')
@@ -1288,9 +1295,9 @@ def changing_master_info(message):
 def changing_master_experience(message):
     """Зміна досвіду майстра"""
 
-    set_user_state(message.from_user.id, 'main_master')
+    # set_user_state(message.from_user.id, 'main_master')
 
-    db.set_master_experience(message.text, message.from_user.id)
+    dbpy.set_master_experience(message.text, message.from_user.id)
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     back = types.KeyboardButton(text='Повернутись на головний екран')
@@ -1300,21 +1307,21 @@ def changing_master_experience(message):
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('end_registration'))
-def ending_registration(call: types.CallbackQuery, state):
+def ending_registration(call: types.CallbackQuery):
     """Закінчення реєстрації: внесення даних до БД"""
 
     # state.set(UserStates.info)
-    set_user_state(call.message.from_user.id, 'info')
+    set_user_state(call.from_user.id, 'info')
 
     bot.send_message(call.message.chat.id, 'Опишіть себе, свої вміння')
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('add_new_service'))
-def start_add_new_service(call: types.CallbackQuery, state):
+def start_add_new_service(call: types.CallbackQuery):
     """Бот задає запитання на рахунок назви послуги"""
 
     # state.set(UserStates.add_new_service)
-    set_user_state(call.message.from_user.id, 'add_new_service')
+    set_user_state(call.from_user.id, 'add_new_service')
 
     bot.send_message(call.message.chat.id,
                      'Щоб створити нову послугу ви повинні дотриматись формату:\n'
@@ -1338,7 +1345,7 @@ def end_add_new_service(message, state):
         info.append(txt[0])
         # state.add_data(reg_services=info)
         set_user_data(message.from_user.id, 'reg_services', info)
-        db.set_service(title=txt[0], cost=txt[1], duration=txt[2])
+        dbpy.set_service(title=txt[0], cost=txt[1], duration=txt[2])
         bot.send_message(message.chat.id, 'Додано')
     except:
         bot.send_message(message.chat.id, 'Будь ласка, перевірте чи ви дотримались правильної форми. Якщо все було дотримано правильно,'
@@ -1348,21 +1355,21 @@ def end_add_new_service(message, state):
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('reg_serv_'))
-def registration_services_callback(call: types.CallbackQuery, state):
+def registration_services_callback(call: types.CallbackQuery):
     # state.set(UserStates.reg_services)
-    set_user_state(call.message.from_user.id, 'reg_services')
+    set_user_state(call.from_user.id, 'reg_services')
 
     # with state.data() as data:
     #     serv_info = data.get('reg_services')
 
-    serv_info = get_user_data(call.message.from_user.id, 'reg_services')
+    serv_info = get_user_data(call.from_user.id, 'reg_services')
 
 
     # serv_info[0] = serv_info[0] + 1
     serv_info.append(call.data[9:])
 
     # state.add_data(reg_services = serv_info)
-    set_user_data(call.message.from_user.id, 'reg_services', serv_info)
+    set_user_data(call.from_user.id, 'reg_services', serv_info)
 
     bot.send_message(call.message.chat.id, 'Додано!')
 
@@ -1371,11 +1378,11 @@ def registration_services_callback(call: types.CallbackQuery, state):
 def services_callback(call: types.CallbackQuery):
     serv_id = int(call.data[5:])
     # bot.add_data(user_id=call.message.chat.id, chat_id=call.message.chat.id, service_id=serv_id)
-    set_user_data(call.message.from_user.id, 'services_id', serv_id)
-    masters_id = db.get_all_masters_with_service(serv_id)
+    set_user_data(call.from_user.id, 'services_id', serv_id)
+    masters_id = dbpy.get_all_masters_with_service(serv_id)
     masters = []
     for master_id in masters_id:
-        masters.append(db.get_master(master_id))
+        masters.append(dbpy.get_master(master_id))
 
     keyboard = types.InlineKeyboardMarkup(row_width=3)
     msg = 'Ось майстри, які цим займаються:\n'
@@ -1395,12 +1402,12 @@ def services_callback(call: types.CallbackQuery):
 def masters_callback(call: types.CallbackQuery):
     mast_id = int(call.data[5:])
     # bot.add_data(user_id=call.message.chat.id, chat_id=call.message.chat.id, master_id=mast_id)
-    set_user_data(call.message.from_user.id, 'master_id', mast_id)
-    services_id = db.get_all_services_with_master(mast_id)
+    set_user_data(call.from_user.id, 'master_id', mast_id)
+    services_id = dbpy.get_all_services_with_master(mast_id)
     services = []
 
     for service_id in services_id:
-        services.append(db.get_service(service_id))
+        services.append(dbpy.get_service(service_id))
 
     keyboard = types.InlineKeyboardMarkup(row_width=3)
     btn = []
@@ -1421,7 +1428,7 @@ def book_callback(call: types.CallbackQuery):
     service_id = serv_mast[1]
     master_id = serv_mast[2]
     # bot.add_data(user_id=call.message.chat.id, chat_id=call.message.chat.id, master_id=master_id, service_id=service_id)
-    set_user_data(call.message.from_user.id, 'service_id', service_id)
+    set_user_data(call.from_user.id, 'service_id', service_id)
     may_to_book = plot.get_schedule_of_master(master_id)
     keyboard = types.InlineKeyboardMarkup(row_width=4)
     days = []
@@ -1444,10 +1451,10 @@ def bookday_callback(call: types.CallbackQuery):
     data = call.data.split('_')
     day = data[1]
     # bot.add_data(user_id=call.message.chat.id, chat_id=call.message.chat.id, day=day)
-    set_user_data(call.message.from_user.id, 'day', day)
+    set_user_data(call.from_user.id, 'day', day)
 
     with bot.retrieve_data(call.message.chat.id) as state_data:
-        duration = db.get_duration(state_data['service_id'])
+        duration = dbpy.get_duration(state_data['service_id'])
         hours = plot.get_day_of_master(state_data['master_id'], day, duration)
     print(hours)
     # day_may = schedule.index(day)
@@ -1477,7 +1484,7 @@ def bookhour_callback(call: types.CallbackQuery):
     print(dt)
     date_time = datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M')
     # bot.add_data(user_id=call.message.chat.id, chat_id=call.message.chat.id, date_time=date_time)
-    set_user_data(call.message.from_user.id, 'date_time', date_time)
+    set_user_data(call.from_user.id, 'date_time', date_time)
 
     keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     share_contact_button = types.KeyboardButton(text="Поділитись своїм номером телефону", request_contact=True)
@@ -1488,8 +1495,8 @@ def bookhour_callback(call: types.CallbackQuery):
                      reply_markup=keyboard)
 
     # bot.add_data(user_id=call.message.chat.id, chat_id=call.message.chat.id, booking=True)
-    set_user_data(call.message.from_user.id, 'booking', True)
+    set_user_data(call.from_user.id, 'booking', True)
     # bot.set_state(user_id=call.message.chat.id, state=UserStates.booking, chat_id=call.message.chat.id)
-    set_user_state(call.message.from_user.id, 'booking')
+    set_user_state(call.from_user.id, 'booking')
 
 bot.infinity_polling()

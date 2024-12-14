@@ -1,16 +1,14 @@
-from telebot.handler_backends import State, StatesGroup
+import json
+from telebot.types import Message
 from models import *
 import datetime as dt
 import redis
 
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
-print(redis_client.set(name='test', value=1))
-print(redis_client.get(name='test'))
-
 STATES = ("main_menu", "my_bookings", "choose_day", "choose_hour", "booking", "main_master", "name", "experience",
     "info", "reg_services", "add_new_service", "set_work_to", "days", "month", "hour_breaks", "sent_message",
-    "set_days_off", "share_contact", "get_client_date", "get_client_time")
+    "set_days_off", "share_contact", "get_client_date", "get_client_time", 'days_off')
 
 
 #FSM(Finite State Machine) using Redis
@@ -19,6 +17,10 @@ def set_user_state(user_id, state):
 
     if state in STATES:
         redis_client.set(f'user:{user_id}:state', state)
+        if state in ["main_menu", "my_bookings", "choose_day", "choose_hour"]:
+            redis_client.expire(f'user:{user_id}:state', 900)
+        elif state != 'main_menu':
+            redis_client.expire(f'user:{user_id}:state', 1800)
 
 def get_user_state(user_id):
     """Подивитись стан користувача"""
@@ -29,12 +31,21 @@ def set_user_data(user_id, key, value):
     """Встановити якусь тимчасову інформацію користувача"""
 
     if key in STATES:
+        if type(value) == list or type(value) == dict:
+            value = json.dumps(value)
+        # print(f'user_id: {user_id}, key: {key}, value: {value}')
         redis_client.hset(f'user:{user_id}:data', key, value)
+        redis_client.expire(f'user:{user_id}:data', 1800)
 
 def get_user_data(user_id, key):
     """Отримати збережену інформацію користувача"""
 
-    return redis_client.hget(f'user:{user_id}:data', key)
+    get = redis_client.hget(f'user:{user_id}:data', key)
+    # print(f'user_id: {user_id}, key: {key}, get1: {get}')
+    if type(get) == str and ('[' in get or '{' in get):
+        get = json.loads(get)
+    # print(f'user_id: {user_id}, key: {key}, get2: {get}')
+    return get
 
 def clear_user_data(user_id):
     """Почистити збережену інформацію користувача з redis"""
