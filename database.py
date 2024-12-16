@@ -215,10 +215,7 @@ def get_existance_master(user_id):
     with db:
         masters = Master.select().where(Master.user_id == user_id)
 
-        if len(masters) == 0:
-            return False
-        else:
-            return True
+        return not (len(masters) == 0)
 
 def get_service_id_with_title(title):
     """Отримати service_id використовуючи назву послуги"""
@@ -316,27 +313,20 @@ def set_master(name, user_id, info, experience, phone_number):
     """Створення майстра"""
 
     with db:
-        try:
-            Master(name = name, user_id = user_id, info = info, experience = experience, work_to=None, phone_number=phone_number).save()
-        except Exception as e:
-            print(e)
+        Master(name = name, user_id = user_id, info = info, experience = experience, work_to=None, phone_number=phone_number).save()
+
 
 def set_booking(date_time, service_id, master_id, client_id):
     """Створення замовлення"""
-    try:
 
-        date = date_time.strftime('%d.%m.%Y')
-        start_time = date_time.strftime('%H:%M')
-        duration = get_duration(service_id)
-        end_time = (date_time + dt.timedelta(minutes=duration)).strftime('%H:%M')
+    date = date_time.strftime('%d.%m.%Y')
+    start_time = date_time.strftime('%H:%M')
+    duration = get_duration(service_id)
+    end_time = (date_time + dt.timedelta(minutes=duration)).strftime('%H:%M')
 
-        print(date, start_time, end_time, duration)
-
-        with db:
-            Booking(date = date, start_time = start_time, end_time = end_time, duration = duration,
-                    service_id = service_id, client_id = client_id, master_id = master_id).save()
-    except Exception as e:
-        print(e)
+    with db:
+        Booking(date = date, start_time = start_time, end_time = end_time, duration = duration,
+                service_id = service_id, client_id = client_id, master_id = master_id).save()
 
 
 def set_client(phone_number, name):
@@ -419,14 +409,8 @@ def delete_master_from_db(master_id):
 def delete_outdated_bookings():
     """Видалення застарілих замовлень"""
 
-    #dt.datetime.strptime(Booking.date, '%Y-%m-%d').date()
-
     with db:
         Booking.delete().where(Booking.date < dt.date.today()).execute()
-        # print(bookings)
-        # for booking in bookings:
-        #     query = booking.delete_instance()
-        #     query.execute()
 
 
 def delete_outdated_break_hours():
@@ -441,34 +425,3 @@ def delete_outdated_days_off():
 
     with db:
         Day_off.delete().where(Day_off.day_off < dt.date.today()).execute()
-        # except:
-        #     print('Everything is up-to-date')
-
-# def set_service():
-#
-#     with db:
-#         Service(title='Депіляція', cost=100).save()
-#
-# def set_master():
-#
-#     with db:
-#         Master(name = 'Катя', specialty = 'майстер шугарінгу', experience = 2,
-#                instagram = 'https://www.instagram.com/s/aGlnaGxpZ2h0OjE3OTE3Mjc0NTE4MTMyNDU1?story_media_id=1774058401556804354_2885737264&igsh=MWtlbnY0d2R5ZGVwcw==').save()
-#
-# def set_serv_has_mstr():
-#
-#     with db:
-#         Service_has_Master(service_id = 1, master_id = 3).save()
-#
-#
-# def set_schedule():
-#
-#     with db:
-#         Schedule(master_id=3, date=dt.date(year=2024, month=1, day=3), t08_09=0, t09_10=None, t10_11=None, t11_12=0,
-#                  t12_13=0, t13_14=0, t14_15=None, t15_16=0, t16_17=0, t17_18=0, t18_19=None, t19_20=None).save()
-
-# see_services_and_prices()
-# add_service()
-# add_master()
-# add_serv_has_mstr()
-# add_schedule()

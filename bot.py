@@ -470,6 +470,52 @@ def set_schedule(message):
 
 
 # CALLBACK_QUERY_HANDLERS
+
+def month_calendar(keyboard, weeks, days_off):
+    """Створює Inline кнопки - книжечка-календар"""
+
+    for num_week, week in weeks.items():
+        week_btns = []
+        for day in week:
+            if day in days_off:
+                week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
+            else:
+                week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
+                                                            callback_data='setting_days_off_' + day))
+
+        if len(week_btns) != 7:
+            if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
+                btns_to_add = 7 - len(week_btns)
+                for x in range(btns_to_add):
+                    week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
+            elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
+                btns_to_add = 7 - len(week_btns)
+                for x in range(btns_to_add):
+                    week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
+            else:
+                first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
+                last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
+
+                day = 1
+                while day != first_day:
+                    week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
+                    day += 1
+
+                day = 7
+                while day != last_day:
+                    week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
+                    day -= 1
+
+        keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
+                     week_btns[4], week_btns[5], week_btns[6])
+
+    complete = types.InlineKeyboardButton(text='Завершити вибір вихідних днів',
+                                          callback_data='setting_days_off_complete')
+    keyboard.add(complete)
+
+    return keyboard
+
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('setting_hours_'))
 def set_break_hours(call):
     """Функція яка обробляє встановлення перерв"""
@@ -509,44 +555,7 @@ def set_break_hours(call):
             btn_back = types.InlineKeyboardButton(text='<<', callback_data='setting_hours_back')
             keyboard.add(btn_back)
 
-            for num_week, week in weeks.items():
-                week_btns = []
-                for day in week:
-                    if day in days_off:
-                        week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
-                                                                    callback_data='setting_hours_day_' + day))
-
-                if len(week_btns) != 7:
-                    if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
-                        last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
-
-                        day = 1
-                        while day != first_day:
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day += 1
-
-                        day = 7
-                        while day != last_day:
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day -= 1
-
-                keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
-                             week_btns[4], week_btns[5], week_btns[6])
-
-            complete = types.InlineKeyboardButton(text='Завершити вибір перерв',
-                                                  callback_data='setting_hours_complete_all')
-            keyboard.add(complete)
+            keyboard = month_calendar(keyboard, weeks, days_off)
 
             msg = bot.edit_message_text(f'Виберіть дні для вибору перерви\n\nМісяць: {new_month}',
                                         chat_id=call.message.chat.id, message_id=msg_id, reply_markup=keyboard)
@@ -572,44 +581,7 @@ def set_break_hours(call):
             btn_next = types.InlineKeyboardButton(text='>>', callback_data='setting_hours_next')
             keyboard.add(btn_next)
 
-            for num_week, week in weeks.items():
-                week_btns = []
-                for day in week:
-                    if day in days_off:
-                        week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
-                                                                    callback_data='setting_hours_day_' + day))
-
-                if len(week_btns) != 7:
-                    if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
-                        last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
-
-                        day = 1
-                        while day != first_day:
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day += 1
-
-                        day = 7
-                        while day != last_day:
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day -= 1
-
-                keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
-                             week_btns[4], week_btns[5], week_btns[6])
-
-            complete = types.InlineKeyboardButton(text='Завершити вибір перерв',
-                                                  callback_data='setting_hours_complete_all')
-            keyboard.add(complete)
+            keyboard = month_calendar(keyboard, weeks, days_off)
 
             msg = bot.edit_message_text(f'Виберіть дні для вибору перерви\n\nМісяць: {new_month}', chat_id=call.message.chat.id,
                                         message_id=msg_id, reply_markup=keyboard)
@@ -650,44 +622,7 @@ def set_break_hours(call):
             except:
                 pass
 
-            for num_week, week in weeks.items():
-                week_btns = []
-                for day in week:
-                    if day in days_off:
-                        week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
-                                                                    callback_data='setting_hours_day_' + day))
-
-                if len(week_btns) != 7:
-                    if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
-                        last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
-
-                        day = 1
-                        while day != first_day:
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day += 1
-
-                        day = 7
-                        while day != last_day:
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day -= 1
-
-                keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
-                             week_btns[4], week_btns[5], week_btns[6])
-
-            complete = types.InlineKeyboardButton(text='Завершити вибір перерв',
-                                                  callback_data='setting_hours_complete_all')
-            keyboard.add(complete)
+            keyboard = month_calendar(keyboard, weeks, days_off)
 
             msg = bot.edit_message_text(f'Виберіть дні для вибору перерви\n\nМісяць: {month}', chat_id=call.message.chat.id,
                                         message_id=msg_id, reply_markup=keyboard)
@@ -718,7 +653,6 @@ def set_break_hours(call):
             msg = bot.edit_message_text(f'Виберіть години, в які хочете відпочивати\n\nДата: {month}, {command[12:]}',
                                         chat_id=call.message.chat.id, message_id=msg_id, reply_markup=keyboard)
 
-            # state.add_data(sent_message=msg)
             set_user_data(call.from_user.id, 'sent_message', msg.message_id)
         case str() if command.startswith('hour_'):
             master_id = dbpy.get_master_id_with_user_id(call.from_user.id)
@@ -751,6 +685,7 @@ def set_break_hours(call):
 
             set_user_data(call.from_user.id, 'sent_message', msg.message_id)
 
+
 @bot.callback_query_handler(func=lambda call: call.data.startswith('setting_days_off_'))
 def set_days_off(call):
     """Функція яка керує механізмом книжечки для вибору вихідних днів"""
@@ -768,7 +703,6 @@ def set_days_off(call):
             while next(months) != month:
                 pass
             new_month = next(months)
-            # state.add_data(month = new_month)
             set_user_data(call.from_user.id, 'month', new_month)
             weeks = days[new_month]
 
@@ -783,44 +717,7 @@ def set_days_off(call):
             btn_back = types.InlineKeyboardButton(text='<<', callback_data='setting_days_off_back')
             keyboard.add(btn_back)
 
-            for num_week, week in weeks.items():
-                week_btns = []
-                for day in week:
-                    if day in days_off:
-                        week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
-                                                                    callback_data='setting_days_off_' + day))
-
-                if len(week_btns) != 7:
-                    if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
-                        last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
-
-                        day = 1
-                        while day != first_day:
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day += 1
-
-                        day = 7
-                        while day != last_day:
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day -= 1
-
-                keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
-                             week_btns[4], week_btns[5], week_btns[6])
-
-            complete = types.InlineKeyboardButton(text='Завершити вибір вихідних днів',
-                                                  callback_data='setting_days_off_complete')
-            keyboard.add(complete)
+            keyboard = month_calendar(keyboard, weeks, days_off)
 
             msg = bot.edit_message_text(f'Виберіть вихідні дні\n\nМісяць: {new_month}', chat_id=call.message.chat.id,
                                         message_id=msg_id, reply_markup=keyboard)
@@ -846,44 +743,7 @@ def set_days_off(call):
             btn_next = types.InlineKeyboardButton(text='>>', callback_data='setting_days_off_next')
             keyboard.add(btn_next)
 
-            for num_week, week in weeks.items():
-                week_btns = []
-                for day in week:
-                    if day in days_off:
-                        week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
-                                                                    callback_data='setting_days_off_' + day))
-
-                if len(week_btns) != 7:
-                    if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
-                        last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
-
-                        day = 1
-                        while day != first_day:
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day += 1
-
-                        day = 7
-                        while day != last_day:
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day -= 1
-
-                keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
-                             week_btns[4], week_btns[5], week_btns[6])
-
-            complete = types.InlineKeyboardButton(text='Завершити вибір вихідних днів',
-                                                  callback_data='setting_days_off_complete')
-            keyboard.add(complete)
+            keyboard = month_calendar(keyboard, weeks, days_off)
 
             msg = bot.edit_message_text(f'Виберіть вихідні дні\n\nМісяць: {new_month}', chat_id=call.message.chat.id,
                                        message_id=msg_id, reply_markup=keyboard)
@@ -1005,44 +865,7 @@ def set_days_off(call):
             except:
                 pass
 
-            for num_week, week in weeks.items():
-                week_btns = []
-                for day in week:
-                    if day in days_off:
-                        week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        week_btns.append(types.InlineKeyboardButton(text=day.split('-')[2],
-                                                                    callback_data='setting_days_off_' + day))
-
-                if len(week_btns) != 7:
-                    if datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2] == 1:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    elif datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2] == 7:
-                        btns_to_add = 7 - len(week_btns)
-                        for x in range(btns_to_add):
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                    else:
-                        first_day = datetime.datetime.strptime(week[0], '%Y-%m-%d').date().isocalendar()[2]
-                        last_day = datetime.datetime.strptime(week[-1], '%Y-%m-%d').date().isocalendar()[2]
-
-                        day = 1
-                        while day != first_day:
-                            week_btns.insert(0, types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day += 1
-
-                        day = 7
-                        while day != last_day:
-                            week_btns.append(types.InlineKeyboardButton(text='-', callback_data='nothing'))
-                            day -= 1
-
-                keyboard.add(week_btns[0], week_btns[1], week_btns[2], week_btns[3],
-                             week_btns[4], week_btns[5], week_btns[6])
-
-            complete = types.InlineKeyboardButton(text='Завершити вибір вихідних днів',
-                                                  callback_data='setting_days_off_complete')
-            keyboard.add(complete)
+            keyboard = month_calendar(keyboard, weeks, days_off)
 
             msg = bot.edit_message_text(f'Виберіть вихідні дні\n\nМісяць: {month}', chat_id=call.message.chat.id,
                                         message_id=msg_id, reply_markup=keyboard)

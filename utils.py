@@ -33,7 +33,6 @@ def set_user_data(user_id, key, value):
     if key in STATES:
         if type(value) == list or type(value) == dict:
             value = json.dumps(value)
-        # print(f'user_id: {user_id}, key: {key}, value: {value}')
         redis_client.hset(f'user:{user_id}:data', key, value)
         redis_client.expire(f'user:{user_id}:data', 1800)
 
@@ -41,10 +40,9 @@ def get_user_data(user_id, key):
     """Отримати збережену інформацію користувача"""
 
     get = redis_client.hget(f'user:{user_id}:data', key)
-    # print(f'user_id: {user_id}, key: {key}, get1: {get}')
     if type(get) == str and ('[' in get or '{' in get):
         get = json.loads(get)
-    # print(f'user_id: {user_id}, key: {key}, get2: {get}')
+
     return get
 
 def clear_user_data(user_id):
@@ -58,18 +56,12 @@ def clear_user_state(user_id):
 
     redis_client.delete(f'user:{user_id}:state')
 
-
-
 def perevir_unique_clients(phone_number):
 
     with db:
 
         try:
-            clients = Client.select().where(Client.phone_number == phone_number)
-            for client in clients:
-                if client.phone_number == phone_number:
-                    return True
-            return False
+            return Client.select().where(Client.phone_number == phone_number).exists()
         except:
             return False
 

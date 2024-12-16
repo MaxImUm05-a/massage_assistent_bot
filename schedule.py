@@ -74,17 +74,8 @@ def create_week_schedule_image(bookings):
 
     for day_bookings in bookings:
         week_day = dt.datetime.strptime(day_bookings[0], '%Y-%m-%d').date().isocalendar()[2]
-        # print(week_day)
-        # while y_pos != 7-week_day:
-        #     print(y_pos)
-        #     ax.text(start_time - 0.5, y_pos, days[6-y_pos], ha='right', va='center', fontsize=12)
-        #     y_pos -= 1
-        # print(days[week_day-1])
-        # ax.text(start_time - 0.5, 6-week_day, days[week_day-1], ha='right', va='center', fontsize=12)
-        # y_pos -= 1
 
         for booking in day_bookings[1]:
-            # print(booking)
             title = booking['service_title']
             start = booking['start_time']
             end = booking['end_time']
@@ -114,6 +105,7 @@ def generate_date_list(end_date_str):
     end_date = dt.datetime.strptime(end_date_str, "%Y-%m-%d").date()
     today = dt.datetime.today().date()
     date_list = [(today + dt.timedelta(days=i)).isoformat() for i in range(1, (end_date - today).days + 1)]
+
     return date_list
 
 def get_schedule_of_master(master_id):
