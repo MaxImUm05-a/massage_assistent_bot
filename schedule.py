@@ -125,9 +125,13 @@ def get_day_of_master(master_id, day, duration):
 
     all_hours = [x/2 for x in range(16, 41)]
     work_hours = dbpy.get_break_hours_master(master_id)
-    work_hours_float = [int(hour[:2]) + int(hour[3:5])/60 for hour in list(work_hours.values())[0]]
+    print(work_hours)
+    if len(work_hours) != 0:
+        work_hours_float = [int(hour[:2]) + int(hour[3:5])/60 for hour in list(work_hours.values())[0]]
+    else:
+        work_hours_float = []
 
-    all_hours = [hour for hour in all_hours if hour in work_hours_float]
+    all_hours = [hour for hour in all_hours if hour not in work_hours_float]
 
     all_bookings = dbpy.get_all_bookings_with_master(master_id)
     all_bookings_info = []

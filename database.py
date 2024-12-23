@@ -41,8 +41,6 @@ def get_all_masters():
 
     return mstrs
 
-
-
 def get_all_bookings_with_client(client_id):
     """Отримати всі записи клієнта"""
 
@@ -217,6 +215,14 @@ def get_existance_master(user_id):
 
         return not (len(masters) == 0)
 
+def get_existance_service(service_title):
+    """Перевірка на унікальність послуги за назвою"""
+
+    with db:
+        masters = Service.select().where(Service.title == service_title)
+
+        return not (len(masters) == 0)
+
 def get_service_id_with_title(title):
     """Отримати service_id використовуючи назву послуги"""
 
@@ -230,11 +236,27 @@ def get_service_id_with_title(title):
 
     return service_id
 
+def get_services_of_master(user_id):
+    """Отримати список всіх послуг майстра"""
+
+    service_ids = []
+
+    with db:
+        master_id = get_master_id_with_user_id(user_id)
+        services = Service_has_master.select().where(Service_has_master.master_id == master_id)
+
+        for service in services:
+            service_ids.append(service.service_id)
+
+    return service_ids
+
 def get_master_work_to(master_id):
     """Отримати термін роботи майстра"""
 
     with db:
         masters = Master.select().where(Master.master_id == master_id)
+
+        print(master_id)
 
         for master in masters:
             work_to = master.work_to
@@ -273,7 +295,12 @@ def get_duration(service_id):
     with db:
         services = Service.select().where(Service.service_id == service_id)
 
+        print(service_id)
+        print(services)
+
         for service in services:
+            print('ok')
+            print(service.duration)
             return service.duration
 
 def get_break_hours_master(master_id):

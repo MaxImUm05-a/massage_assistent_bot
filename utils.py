@@ -8,7 +8,8 @@ redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_respo
 
 STATES = ("main_menu", "my_bookings", "choose_day", "choose_hour", "booking", "main_master", "name", "experience",
     "info", "reg_services", "add_new_service", "set_work_to", "days", "month", "hour_breaks", "sent_message",
-    "set_days_off", "share_contact", "get_client_date", "get_client_time", 'days_off')
+    "set_days_off", "share_contact", "get_client_date", "get_client_time", 'days_off', 'day', 'master_id',
+    'service_id', 'date_time')
 
 
 #FSM(Finite State Machine) using Redis
@@ -21,6 +22,8 @@ def set_user_state(user_id, state):
             redis_client.expire(f'user:{user_id}:state', 900)
         elif state != 'main_menu':
             redis_client.expire(f'user:{user_id}:state', 1800)
+    else:
+        raise TypeError('Такого state не існує, перевірте, будь ласка, правильність')
 
 def get_user_state(user_id):
     """Подивитись стан користувача"""
@@ -35,6 +38,8 @@ def set_user_data(user_id, key, value):
             value = json.dumps(value)
         redis_client.hset(f'user:{user_id}:data', key, value)
         redis_client.expire(f'user:{user_id}:data', 1800)
+    else:
+        raise TypeError('Такого state не існує, перевірте, будь ласка, правильність')
 
 def get_user_data(user_id, key):
     """Отримати збережену інформацію користувача"""
